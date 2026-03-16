@@ -8,7 +8,10 @@ pub mod store;
 
 pub use append::{append_event, verify_integrity};
 pub use checkpoint::CheckpointPayload;
-pub use consensus::BftGadget;
+pub use consensus::{
+    BftGadget, ConsensusError, EquivocationProof, FinalizedCheckpoint, Validator, ValidatorSet,
+    ViewChange, ViewChangeStatus, Vote, VotePhase, VoteStatus,
+};
 pub use mmr::Mmr;
 pub use proof::EventInclusionProof;
 pub use smt::Smt;

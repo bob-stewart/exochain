@@ -42,6 +42,7 @@ pub struct RiskAttestation {
 
 impl RiskAttestation {
     /// Create and sign a new RiskAttestation.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         subject: Did,
         audience: Did,

@@ -12,6 +12,7 @@ ed25519-dalek.workspace = true
 serde_cbor.workspace = true
 blake3.workspace = true
 bs58.workspace = true
+rand.workspace = true
 
 [dev-dependencies]
 proptest.workspace = true

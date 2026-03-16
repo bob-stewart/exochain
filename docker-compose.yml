@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: exochain
+      POSTGRES_USER: exochain
+      POSTGRES_PASSWORD: exochain_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exochain"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  exochain-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://exochain:exochain_dev@postgres:5432/exochain
+      PORT: "8080"
+      JWT_SECRET: "${JWT_SECRET:-exochain-dev-secret-change-in-production}"
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  livesafe-api:
+    build:
+      context: ../livesafe
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgres://exochain:exochain_dev@postgres:5432/livesafe
+      PORT: "3001"
+      NODE_ENV: production
+      JWT_SECRET: "${JWT_SECRET:-livesafe-dev-secret-change-in-production}"
+      EXOCHAIN_GATEWAY_URL: http://exochain-api:8080/graphql
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      exochain-api:
+        condition: service_started
+
+volumes:
+  pgdata:

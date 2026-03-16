@@ -9,7 +9,8 @@ pub mod tnc_enforcer;
 pub mod fiduciary_package;
 pub mod cli;
 
-pub use decision_object::DecisionObject;
+pub use decision_object::{DecisionObject, DecisionClass, SignerType, Status};
+pub use constitution::ConstitutionRef;
 pub use tnc_enforcer::TNCEnforcer;
 pub use fiduciary_package::FiduciaryDefensePackage;
 

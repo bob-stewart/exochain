@@ -15,7 +15,9 @@ axum = "0.7"
 tokio = { workspace = true, features = ["full"] }
 tracing = "0.1"
 hex = "0.4"
+serde_cbor.workspace = true
 libp2p = { version = "0.53", features = ["tcp", "tls", "noise", "yamux", "macros", "tokio", "ping"] }
 
 [dev-dependencies]
 tokio.workspace = true
+serde_json.workspace = true

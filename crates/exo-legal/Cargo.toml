@@ -1,0 +1,21 @@
+[package]
+name = "exo-legal"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Legal compliance layer: self-authenticating records, e-discovery, privilege, fiduciary defense"
+
+[dependencies]
+exo-core.workspace = true
+exo-governance.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_cbor.workspace = true
+blake3.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+rand.workspace = true
+ed25519-dalek.workspace = true

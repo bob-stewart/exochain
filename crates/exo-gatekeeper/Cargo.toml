@@ -3,12 +3,17 @@ name = "exo-gatekeeper"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+description = "CGR Kernel — Judicial Branch of EXOCHAIN. Constitutional invariant enforcement, Holon lifecycle, TEE attestation."
 
 [dependencies]
 exo-core.workspace = true
 serde.workspace = true
+serde_cbor.workspace = true
+serde_json.workspace = true
+blake3.workspace = true
 thiserror.workspace = true
 async-trait.workspace = true
+hex.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

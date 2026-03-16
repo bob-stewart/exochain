@@ -1,0 +1,16 @@
+[package]
+name = "exo-proofs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Zero-knowledge proof layer: zk-SNARK/STARK proof generation and verification for decision.forum"
+
+[dependencies]
+exo-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+blake3.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+rand.workspace = true

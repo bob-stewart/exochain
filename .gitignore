@@ -1,0 +1,4 @@
+target/
+.vite/
+node_modules/
+.claude/

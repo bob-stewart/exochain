@@ -2,7 +2,7 @@ use async_graphql::SimpleObject;
 use exo_core::{Blake3Hash, EventEnvelope};
 
 /// GraphQL wrapper for EventEnvelope.
-#[derive(SimpleObject)]
+#[derive(Clone, SimpleObject)]
 pub struct EventView {
     pub id: String,
     pub parents: Vec<String>,

@@ -72,6 +72,7 @@ pub fn rotate_key(
     old_key_id: &str,
     new_public_key: &[u8; 32],
     controller: &Did,
+    current_time: u64,
 ) -> Result<VerificationMethod, KeyError> {
     // 1. Find/Validate old key
     let old_method_idx = doc
@@ -83,7 +84,7 @@ pub fn rotate_key(
     // 2. Revoke old key (or set inactive)
     let old_method = &mut doc.verification_methods[old_method_idx];
     old_method.active = false;
-    // Set revoked_at to current time (passed in? or TODO)
+    old_method.revoked_at = Some(current_time);
 
     // 3. Create new method
     let new_version = old_method.version + 1;
@@ -97,11 +98,11 @@ pub fn rotate_key(
         public_key_multibase: multibase,
         version: new_version,
         active: true,
-        valid_from: 0, // Should be current block time
+        valid_from: current_time,
         revoked_at: None,
     };
 
-    doc.updated = 0; // Should be current block time
+    doc.updated = current_time;
     doc.verification_methods.push(new_method.clone());
 
     Ok(new_method)

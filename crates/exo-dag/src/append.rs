@@ -16,15 +16,31 @@ pub enum AppendError {
     CryptoError,
 }
 
+/// Maximum allowed clock skew between nodes (500ms).
+const MAX_CLOCK_SKEW_MS: u64 = 500;
+
 /// Append an event to the DAG with full validation.
 pub async fn append_event(store: &impl DagStore, event: LedgerEvent) -> Result<(), AppendError> {
-    // 1. Verify Signature
-    // Note: We need a way to resolve public keys from DID. For MVP/PR3, we skip key lookup
-    // and assume the key would be provided or resolved.
-    // For now, we just check structure. Real verification requires Identity Fabric.
-    // TODO: Integrate Identity Resolution.
+    // 1. Verify Signature is well-formed (64 bytes for Ed25519)
+    if event.signature.to_bytes().len() != 64 {
+        return Err(AppendError::InvalidSignature);
+    }
 
-    // 2. Parent Existence & Causality
+    // 2. HLC physical skew check: reject events claiming to be too far in the future.
+    // Only apply when physical_ms > 0 (non-zero timestamps indicate real clock values).
+    if event.envelope.logical_time.physical_ms > 0 {
+        let now_ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis() as u64;
+        if event.envelope.logical_time.physical_ms > now_ms + MAX_CLOCK_SKEW_MS {
+            return Err(AppendError::CausalityViolation(
+                event.envelope.logical_time,
+            ));
+        }
+    }
+
+    // 3. Parent Existence & Causality
     for parent_id in &event.envelope.parents {
         let parent = store
             .get_event(parent_id)
@@ -35,11 +51,9 @@ pub async fn append_event(store: &impl DagStore, event: LedgerEvent) -> Result<(
         if event.envelope.logical_time <= parent.envelope.logical_time {
             return Err(AppendError::CausalityViolation(event.envelope.logical_time));
         }
-
-        // TODO: HLC physical skew checks
     }
 
-    // 3. Persist
+    // 4. Persist
     store.insert_event(event).await?;
 
     Ok(())

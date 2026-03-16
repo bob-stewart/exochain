@@ -1,0 +1,20 @@
+[package]
+name = "exo-authority"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Authority chain verification engine for decision.forum — TNC-01, TNC-02, TNC-05, TNC-09"
+
+[dependencies]
+exo-core.workspace = true
+exo-identity.workspace = true
+exo-governance = { path = "../exo-governance", version = "0.1.0" }
+serde.workspace = true
+thiserror.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+proptest.workspace = true
+rand.workspace = true
+tokio.workspace = true
+ed25519-dalek.workspace = true

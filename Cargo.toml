@@ -1,14 +1,5 @@
 [workspace]
-members = [
-    "crates/decision-forum",
-    "crates/exochain-core",
-    "crates/exochain-node",
-    "crates/exochain-crypto",
-    "crates/exochain-network",
-    "crates/exochain-storage",
-    "crates/exochain-consensus",
-    "crates/exochain-governance"
-]
+resolver = "2"
 members = [
     "crates/exo-core",
     "crates/exo-dag",
@@ -16,6 +7,16 @@ members = [
     "crates/exo-consent",
     "crates/exo-api",
     "crates/exo-gatekeeper",
+    # decision.forum governance crates
+    "crates/decision-forum",
+    "crates/exo-governance",
+    "crates/exo-authority",
+    # decision.forum Phase 2-4 crates
+    "crates/exo-legal",
+    "crates/exo-tenant",
+    "crates/exo-proofs",
+    "crates/exo-gateway",
+    "crates/exo-escalation",
 ]
 
 [workspace.package]
@@ -31,15 +32,21 @@ exo-core = { path = "crates/exo-core", version = "0.1.0" }
 exo-dag = { path = "crates/exo-dag", version = "0.1.0" }
 exo-identity = { path = "crates/exo-identity", version = "0.1.0" }
 exo-consent = { path = "crates/exo-consent", version = "0.1.0" }
+exo-governance = { path = "crates/exo-governance", version = "0.1.0" }
+exo-authority = { path = "crates/exo-authority", version = "0.1.0" }
+exo-legal = { path = "crates/exo-legal", version = "0.1.0" }
+exo-tenant = { path = "crates/exo-tenant", version = "0.1.0" }
+exo-proofs = { path = "crates/exo-proofs", version = "0.1.0" }
 
 # Third-party dependencies (Pinned for security)
 serde = { version = "1.0", features = ["derive"] }
-serde_cbor = "0.11" # Or ciborium if preferred for determinstic
+serde_cbor = "0.11"
+serde_json = "1.0"
 blake3 = "1.5"
 ed25519-dalek = { version = "2.1", features = ["serde", "rand_core"] }
 thiserror = "1.0"
 anyhow = "1.0"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.32", features = ["full"] }
 async-trait = "0.1"
 proptest = "1.3"
@@ -47,3 +54,8 @@ criterion = "0.5"
 bs58 = "0.5"
 hex = "0.4"
 rand = "0.8"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+axum = "0.7"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "postgres", "json", "migrate"] }
+dotenvy = "0.15"

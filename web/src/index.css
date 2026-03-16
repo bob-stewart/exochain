@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Urgency indicators */
+  --urgency-critical: #DC2626;
+  --urgency-high: #EA580C;
+  --urgency-moderate: #CA8A04;
+  --urgency-low: #16A34A;
+  --urgency-neutral: #6B7280;
+
+  /* Decision status */
+  --status-created: #94A3B8;
+  --status-deliberation: #3B82F6;
+  --status-voting: #EAB308;
+  --status-approved: #22C55E;
+  --status-rejected: #EF4444;
+  --status-void: #6B7280;
+  --status-contested: #F97316;
+  --status-ratification: #8B5CF6;
+  --status-expired: #991B1B;
+  --status-degraded: #D97706;
+
+  /* Surface hierarchy (light theme) */
+  --surface-base: #F8FAFC;
+  --surface-raised: #FFFFFF;
+  --surface-overlay: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --border-subtle: #E2E8F0;
+  --accent-primary: #2563EB;
+  --accent-hover: #1D4ED8;
+
+  /* Legacy governance */
+  --color-governance-primary: #2563eb;
+  --color-governance-bg: #f0f7ff;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* WCAG 2.2 AA focus indicators */
+*:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* Skip to main content link for screen readers */
+.skip-link {
+  @apply absolute -top-10 left-0 text-white px-4 py-2 z-50;
+  background-color: #2563EB;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  @apply top-0;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Ambient status pulse animation for health indicator */
+@keyframes health-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.health-pulse {
+  animation: health-pulse 2s ease-in-out infinite;
+}
+
+/* Ambient status indicator dot */
+.status-dot {
+  @apply inline-block rounded-full;
+}
+
+.status-dot-sm {
+  @apply w-2 h-2;
+}
+
+.status-dot-md {
+  @apply w-2.5 h-2.5;
+}
+
+.status-dot-lg {
+  @apply w-3 h-3;
+}

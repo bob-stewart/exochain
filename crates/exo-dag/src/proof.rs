@@ -19,6 +19,7 @@ pub struct EventInclusionProof {
     /// Standard MMR proof involves:
     /// 1. Reconstruct the peak for the leaf.
     /// 2. Bag this peak with other peaks to get the root.
+    ///
     /// This field might contain the "other peaks" or a consolidated sibling?
     /// For simplicity in this implementation, we will assume the Bagging step is done by providing
     /// the sibling peaks necessary to hash up to the root.

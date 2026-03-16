@@ -1,0 +1,18 @@
+[package]
+name = "exo-tenant"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Multi-tenant isolation, storage abstraction, and cold archival for decision.forum"
+
+[dependencies]
+exo-core.workspace = true
+exo-dag = { path = "../exo-dag", version = "0.1.0" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+rand.workspace = true
