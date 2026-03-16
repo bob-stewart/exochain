@@ -37,6 +37,7 @@ exo-authority = { path = "crates/exo-authority", version = "0.1.0" }
 exo-legal = { path = "crates/exo-legal", version = "0.1.0" }
 exo-tenant = { path = "crates/exo-tenant", version = "0.1.0" }
 exo-proofs = { path = "crates/exo-proofs", version = "0.1.0" }
+exo-gatekeeper = { path = "crates/exo-gatekeeper", version = "0.1.0" }
 
 # Third-party dependencies (Pinned for security)
 serde = { version = "1.0", features = ["derive"] }

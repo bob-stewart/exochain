@@ -1224,6 +1224,7 @@ dependencies = [
  "ed25519-dalek",
  "exo-authority",
  "exo-core",
+ "exo-gatekeeper",
  "exo-governance",
  "exo-legal",
  "exo-proofs",
