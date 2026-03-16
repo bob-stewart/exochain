@@ -17,6 +17,9 @@ use tower_http::cors::CorsLayer;
 use crate::auth::{AuthProvider, AuthenticatedUser, JwtService, TokenClaims};
 use exo_core::crypto::{hash_bytes, Blake3Hash};
 use exo_core::hlc::HybridLogicalClock;
+use exo_gatekeeper::{
+    CombinatorEngine, CombinatorTerm, ReductionContext, TypedValue,
+};
 use exo_governance::audit::{AuditEventType, AuditLog};
 use exo_governance::constitution::*;
 use exo_governance::decision::*;
@@ -2644,6 +2647,244 @@ async fn advance_user_pace(
 }
 
 // ---------------------------------------------------------------------------
+// Combinator Reduction — JSON wrappers and handler
+// ---------------------------------------------------------------------------
+
+/// JSON-serializable representation of a TypedValue.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", content = "value", rename_all = "camelCase")]
+pub enum TypedValueJson {
+    Bool(bool),
+    Nat(u64),
+    Text(String),
+    Did(String),
+    Hash(String),
+    List(Vec<TypedValueJson>),
+    Unit,
+}
+
+impl TypedValueJson {
+    fn from_typed_value(v: &TypedValue) -> Self {
+        match v {
+            TypedValue::Bool(b) => TypedValueJson::Bool(*b),
+            TypedValue::Nat(n) => TypedValueJson::Nat(*n),
+            TypedValue::Text(s) => TypedValueJson::Text(s.clone()),
+            TypedValue::Did(d) => TypedValueJson::Did(d.clone()),
+            TypedValue::Hash(h) => TypedValueJson::Hash(hex::encode(h)),
+            TypedValue::List(items) => {
+                TypedValueJson::List(items.iter().map(TypedValueJson::from_typed_value).collect())
+            }
+            TypedValue::Unit => TypedValueJson::Unit,
+        }
+    }
+
+    fn to_typed_value(&self) -> Result<TypedValue, String> {
+        match self {
+            TypedValueJson::Bool(b) => Ok(TypedValue::Bool(*b)),
+            TypedValueJson::Nat(n) => Ok(TypedValue::Nat(*n)),
+            TypedValueJson::Text(s) => Ok(TypedValue::Text(s.clone())),
+            TypedValueJson::Did(d) => Ok(TypedValue::Did(d.clone())),
+            TypedValueJson::Hash(h) => {
+                let bytes = hex::decode(h).map_err(|e| format!("invalid hex hash: {e}"))?;
+                if bytes.len() != 32 {
+                    return Err(format!("hash must be 32 bytes, got {}", bytes.len()));
+                }
+                let mut arr = [0u8; 32];
+                arr.copy_from_slice(&bytes);
+                Ok(TypedValue::Hash(arr))
+            }
+            TypedValueJson::List(items) => {
+                let vals: Result<Vec<_>, _> = items.iter().map(|i| i.to_typed_value()).collect();
+                Ok(TypedValue::List(vals?))
+            }
+            TypedValueJson::Unit => Ok(TypedValue::Unit),
+        }
+    }
+}
+
+/// JSON-serializable representation of a CombinatorTerm.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum CombinatorTermJson {
+    S,
+    K,
+    I,
+    B,
+    C,
+    Not,
+    And,
+    Or,
+    Implies,
+    ForAll { variable: String, domain: String },
+    Exists { variable: String, domain: String },
+    Equals,
+    LessThan,
+    GreaterThanOrEqual,
+    Lookup { key: String },
+    Literal { value: TypedValueJson },
+    App { f: Box<CombinatorTermJson>, x: Box<CombinatorTermJson> },
+    Reduced { value: TypedValueJson },
+}
+
+impl CombinatorTermJson {
+    fn to_combinator_term(&self) -> Result<CombinatorTerm, String> {
+        match self {
+            CombinatorTermJson::S => Ok(CombinatorTerm::S),
+            CombinatorTermJson::K => Ok(CombinatorTerm::K),
+            CombinatorTermJson::I => Ok(CombinatorTerm::I),
+            CombinatorTermJson::B => Ok(CombinatorTerm::B),
+            CombinatorTermJson::C => Ok(CombinatorTerm::C),
+            CombinatorTermJson::Not => Ok(CombinatorTerm::Not),
+            CombinatorTermJson::And => Ok(CombinatorTerm::And),
+            CombinatorTermJson::Or => Ok(CombinatorTerm::Or),
+            CombinatorTermJson::Implies => Ok(CombinatorTerm::Implies),
+            CombinatorTermJson::ForAll { variable, domain } => {
+                Ok(CombinatorTerm::ForAll { variable: variable.clone(), domain: domain.clone() })
+            }
+            CombinatorTermJson::Exists { variable, domain } => {
+                Ok(CombinatorTerm::Exists { variable: variable.clone(), domain: domain.clone() })
+            }
+            CombinatorTermJson::Equals => Ok(CombinatorTerm::Equals),
+            CombinatorTermJson::LessThan => Ok(CombinatorTerm::LessThan),
+            CombinatorTermJson::GreaterThanOrEqual => Ok(CombinatorTerm::GreaterThanOrEqual),
+            CombinatorTermJson::Lookup { key } => {
+                Ok(CombinatorTerm::Lookup { key: key.clone() })
+            }
+            CombinatorTermJson::Literal { value } => {
+                Ok(CombinatorTerm::Literal(value.to_typed_value()?))
+            }
+            CombinatorTermJson::App { f, x } => {
+                Ok(CombinatorTerm::app(f.to_combinator_term()?, x.to_combinator_term()?))
+            }
+            CombinatorTermJson::Reduced { value } => {
+                Ok(CombinatorTerm::Reduced(value.to_typed_value()?))
+            }
+        }
+    }
+}
+
+/// Request body for POST /api/v1/combinators/reduce.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CombinatorReduceRequest {
+    pub term: CombinatorTermJson,
+    #[serde(default)]
+    pub context: Option<CombinatorContextJson>,
+    /// Optional identifier for the invariant being checked.
+    #[serde(default)]
+    pub invariant_id: Option<String>,
+    /// Maximum reduction steps (capped at 10_000). Defaults to 1000.
+    #[serde(default)]
+    pub max_reductions: Option<u32>,
+}
+
+/// JSON-serializable reduction context with bindings and domains.
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct CombinatorContextJson {
+    #[serde(default)]
+    pub bindings: HashMap<String, TypedValueJson>,
+    #[serde(default)]
+    pub domains: HashMap<String, Vec<TypedValueJson>>,
+}
+
+impl CombinatorContextJson {
+    fn to_reduction_context(&self) -> Result<ReductionContext, String> {
+        let mut ctx = ReductionContext::new();
+        for (k, v) in &self.bindings {
+            ctx.bind(k.clone(), v.to_typed_value()?);
+        }
+        for (k, vals) in &self.domains {
+            let domain: Result<Vec<_>, _> = vals.iter().map(|v| v.to_typed_value()).collect();
+            ctx.set_domain(k.clone(), domain?);
+        }
+        Ok(ctx)
+    }
+}
+
+/// A single reduction step in the JSON response.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReductionStepJson {
+    pub step_number: u32,
+    pub rule_applied: String,
+    pub before: String,
+    pub after: String,
+}
+
+/// Response body for POST /api/v1/combinators/reduce.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CombinatorReduceResponse {
+    pub valid: bool,
+    pub final_value: TypedValueJson,
+    pub total_reductions: u32,
+    pub invariant_id: String,
+    pub steps: Vec<ReductionStepJson>,
+}
+
+/// POST /api/v1/combinators/reduce
+///
+/// Accepts a combinator term (and optional context), reduces it via the
+/// CombinatorEngine, and returns the reduction result with a full proof trace.
+async fn reduce_combinator(
+    State(_state): State<SharedState>,
+    Json(req): Json<CombinatorReduceRequest>,
+) -> Result<Json<CombinatorReduceResponse>, (StatusCode, Json<ErrorJson>)> {
+    // Parse the term from JSON into the internal CombinatorTerm type.
+    let term = req.term.to_combinator_term().map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorJson {
+                error: format!("Invalid combinator term: {e}"),
+            }),
+        )
+    })?;
+
+    // Build the reduction context from the optional JSON context.
+    let ctx = match &req.context {
+        Some(c) => c.to_reduction_context().map_err(|e| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(ErrorJson {
+                    error: format!("Invalid reduction context: {e}"),
+                }),
+            )
+        })?,
+        None => ReductionContext::new(),
+    };
+
+    let invariant_id = req.invariant_id.as_deref().unwrap_or("anonymous");
+    let max_reductions = req.max_reductions.unwrap_or(1000).min(10_000);
+
+    // Run the combinator engine.
+    let engine = CombinatorEngine::new(max_reductions);
+    let trace = engine.reduce(term, &ctx, invariant_id);
+
+    // Determine validity: a term is "valid" if it reduced to Bool(true).
+    let valid = matches!(trace.final_value, TypedValue::Bool(true));
+
+    let steps: Vec<ReductionStepJson> = trace
+        .steps
+        .iter()
+        .map(|s| ReductionStepJson {
+            step_number: s.step_number,
+            rule_applied: s.rule_applied.clone(),
+            before: s.before.clone(),
+            after: s.after.clone(),
+        })
+        .collect();
+
+    Ok(Json(CombinatorReduceResponse {
+        valid,
+        final_value: TypedValueJson::from_typed_value(&trace.final_value),
+        total_reductions: trace.total_reductions,
+        invariant_id: trace.invariant_id,
+        steps,
+    }))
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -2678,6 +2919,8 @@ pub fn create_router(state: SharedState) -> Router {
         )
         // Identity score endpoint
         .route("/api/v1/identity/:did/score", get(get_identity_score))
+        // Combinator reduction endpoint
+        .route("/api/v1/combinators/reduce", post(reduce_combinator))
         // User management endpoints
         .route("/api/v1/users", get(list_users))
         .route(

@@ -16,6 +16,7 @@ exo-authority.workspace = true
 exo-legal.workspace = true
 exo-tenant.workspace = true
 exo-proofs.workspace = true
+exo-gatekeeper.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
