@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 /// PACE enrollment status for a LiveSafe subscriber.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum PaceStatus {
+pub enum LiveSafePaceStatus {
     /// Subscriber has not completed PACE enrollment.
     Incomplete,
     /// PACE enrollment is active and all shards confirmed.
@@ -47,7 +47,7 @@ pub struct LiveSafeIdentity {
     /// 0-100 composite odentity score.
     pub odentity_composite: f64,
     /// Current PACE enrollment status.
-    pub pace_status: PaceStatus,
+    pub pace_status: LiveSafePaceStatus,
     /// Current card issuance status.
     pub card_status: CardStatus,
     /// Creation timestamp in milliseconds since epoch.
@@ -257,7 +257,7 @@ fn resolve_query_mock(query: &LiveSafeQuery) -> serde_json::Value {
         LiveSafeQuery::Identity { did } => {
             serde_json::to_value(LiveSafeIdentity {
                 did: did.clone(), odentity_composite: 72.5,
-                pace_status: PaceStatus::Active, card_status: CardStatus::Active,
+                pace_status: LiveSafePaceStatus::Active, card_status: CardStatus::Active,
                 created_at_ms: 1_700_000_000_000, exochain_anchor: Some("anchor_abc123".into()),
             }).unwrap_or_default()
         }
@@ -335,7 +335,7 @@ pub async fn resolve_mutation_db(mutation: &LiveSafeMutation, pool: &sqlx::PgPoo
             ).await;
             serde_json::to_value(LiveSafeIdentity {
                 did: did.clone(), odentity_composite: 0.0,
-                pace_status: PaceStatus::Incomplete, card_status: CardStatus::NotIssued,
+                pace_status: LiveSafePaceStatus::Incomplete, card_status: CardStatus::NotIssued,
                 created_at_ms: now_ms(), exochain_anchor: Some(anchor),
             }).unwrap_or_default()
         }
@@ -371,7 +371,7 @@ fn resolve_mutation_mock(mutation: &LiveSafeMutation) -> serde_json::Value {
         LiveSafeMutation::RegisterIdentity { did } => {
             serde_json::to_value(LiveSafeIdentity {
                 did: did.clone(), odentity_composite: 0.0,
-                pace_status: PaceStatus::Incomplete, card_status: CardStatus::NotIssued,
+                pace_status: LiveSafePaceStatus::Incomplete, card_status: CardStatus::NotIssued,
                 created_at_ms: now_ms(), exochain_anchor: Some(format!("anchor_{}", uuid::Uuid::new_v4())),
             }).unwrap_or_default()
         }
@@ -604,12 +604,12 @@ mod tests {
 
     #[test]
     fn test_pace_status_enum_variants() {
-        let p = PaceStatus::Incomplete;
-        assert_eq!(p, PaceStatus::Incomplete);
-        let p = PaceStatus::Active;
-        assert_eq!(p, PaceStatus::Active);
-        let p = PaceStatus::Recovery;
-        assert_eq!(p, PaceStatus::Recovery);
+        let p = LiveSafePaceStatus::Incomplete;
+        assert_eq!(p, LiveSafePaceStatus::Incomplete);
+        let p = LiveSafePaceStatus::Active;
+        assert_eq!(p, LiveSafePaceStatus::Active);
+        let p = LiveSafePaceStatus::Recovery;
+        assert_eq!(p, LiveSafePaceStatus::Recovery);
     }
 
     #[test]

@@ -13,8 +13,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
+use axum::http::{HeaderValue, Method};
 
 use crate::auth::{AuthProvider, AuthenticatedUser, JwtService, TokenClaims};
+use crate::livesafe::{self, LiveSafeMutation, LiveSafeQuery};
 use exo_core::crypto::{hash_bytes, Blake3Hash};
 use exo_core::hlc::HybridLogicalClock;
 use exo_gatekeeper::{
@@ -2885,6 +2887,38 @@ async fn reduce_combinator(
 }
 
 // ---------------------------------------------------------------------------
+// LiveSafe handlers
+// ---------------------------------------------------------------------------
+
+async fn livesafe_query(
+    State(state): State<SharedState>,
+    Json(query): Json<LiveSafeQuery>,
+) -> Json<serde_json::Value> {
+    let st = state.read().await;
+    if let Some(ref pool) = st.pool {
+        let pool = pool.clone();
+        drop(st);
+        Json(livesafe::resolve_query_db(&query, &pool).await)
+    } else {
+        Json(livesafe::resolve_query(&query))
+    }
+}
+
+async fn livesafe_mutation(
+    State(state): State<SharedState>,
+    Json(mutation): Json<LiveSafeMutation>,
+) -> Json<serde_json::Value> {
+    let st = state.read().await;
+    if let Some(ref pool) = st.pool {
+        let pool = pool.clone();
+        drop(st);
+        Json(livesafe::resolve_mutation_db(&mutation, &pool).await)
+    } else {
+        Json(livesafe::resolve_mutation(&mutation))
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
@@ -2927,7 +2961,22 @@ pub fn create_router(state: SharedState) -> Router {
             "/api/v1/users/:did/advance-pace",
             post(advance_user_pace),
         )
-        .layer(CorsLayer::permissive())
+        // LiveSafe endpoints
+        .route("/api/v1/livesafe/query", post(livesafe_query))
+        .route("/api/v1/livesafe/mutation", post(livesafe_mutation))
+        .layer(
+            CorsLayer::new()
+                .allow_origin([
+                    "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+                    "http://localhost:3001".parse::<HeaderValue>().unwrap(),
+                    "http://localhost:4000".parse::<HeaderValue>().unwrap(),
+                    "http://localhost:5173".parse::<HeaderValue>().unwrap(),
+                    "http://localhost:8080".parse::<HeaderValue>().unwrap(),
+                ])
+                .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::OPTIONS])
+                .allow_headers(tower_http::cors::Any)
+                .allow_credentials(true)
+        )
         .with_state(state)
 }
 
