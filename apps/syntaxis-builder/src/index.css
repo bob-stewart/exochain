@@ -1,0 +1,56 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@theme {
+  --color-bg: #06080f;
+  --color-bg2: #0d1117;
+  --color-bg3: #161b22;
+  --color-surface: rgba(255,255,255,0.04);
+  --color-surface2: rgba(255,255,255,0.07);
+  --color-border: rgba(255,255,255,0.06);
+  --color-border2: rgba(255,255,255,0.12);
+  --color-text: #e6edf3;
+  --color-text2: #8b949e;
+  --color-accent: #58a6ff;
+  --color-purple: #a371f7;
+  --color-green: #3fb950;
+  --color-red: #f85149;
+  --color-yellow: #d29922;
+  --color-cyan: #39d2c0;
+  --color-orange: #f0883e;
+  --color-pink: #f778ba;
+}
+
+html, body, #root { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* XYFlow overrides */
+.react-flow__background { opacity: 0.4; }
+.react-flow__controls { background: var(--color-bg3); border: 1px solid var(--color-border); border-radius: 8px; }
+.react-flow__controls-button { background: transparent; border-bottom: 1px solid var(--color-border); fill: var(--color-text2); }
+.react-flow__controls-button:hover { background: var(--color-surface2); }
+.react-flow__edge-path { stroke: rgba(255,255,255,0.12); stroke-width: 2; }
+.react-flow__connection-line { stroke: var(--color-purple); stroke-width: 2; }
+.react-flow__minimap { background: var(--color-bg2); border: 1px solid var(--color-border); border-radius: 8px; }
+
+/* Glass utility */
+.glass {
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* Animations */
+@keyframes nodePulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+@keyframes flowDash { to { stroke-dashoffset: -20; } }
+.edge-animated { stroke-dasharray: 5 5; animation: flowDash 1s linear infinite; }

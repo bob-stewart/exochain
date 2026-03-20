@@ -1,0 +1,74 @@
+version: "3.9"
+
+# ── Production overlay for cto.systems ─────────────────────────
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Adds Nginx reverse proxy + SSL, adds restart policies.
+# Port binding: only Nginx exposes 80/443. Services stay internal.
+
+services:
+
+  # ── Nginx reverse proxy + SSL ────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - certbot-conf:/etc/letsencrypt:ro
+      - certbot-www:/var/www/certbot:ro
+    depends_on:
+      - gateway-api
+      - syntaxis-builder
+      - dashboard
+    networks:
+      - exoeth
+    restart: unless-stopped
+
+  # ── Certbot (SSL renewal) ────────────────────────────────────
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - certbot-conf:/etc/letsencrypt
+      - certbot-www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    networks:
+      - exoeth
+
+  # ── Restart policies for all services ────────────────────────
+  postgres:
+    restart: unless-stopped
+  gateway-api:
+    restart: unless-stopped
+  identity-service:
+    restart: unless-stopped
+  consent-service:
+    restart: unless-stopped
+  governance-engine:
+    restart: unless-stopped
+  decision-forge:
+    restart: unless-stopped
+  crosscheck-adapter:
+    restart: unless-stopped
+  provenance-writer:
+    restart: unless-stopped
+  audit-api:
+    restart: unless-stopped
+  notification-service:
+    restart: unless-stopped
+  policy-distribution:
+    restart: unless-stopped
+  syntaxis-orchestrator:
+    restart: unless-stopped
+  syntaxis-builder:
+    restart: unless-stopped
+  caip-engine:
+    restart: unless-stopped
+  dashboard:
+    restart: unless-stopped
+
+volumes:
+  certbot-conf:
+  certbot-www:

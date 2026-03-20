@@ -1,0 +1,25 @@
+# ── ExoEth Service Dockerfile ──────────────────────────────────
+# Shared Dockerfile for all WASM-powered microservices.
+# Build context: repo root. ARG SERVICE_DIR selects the service.
+
+FROM node:20-alpine
+ARG SERVICE_DIR=services/gateway-api
+WORKDIR /app
+
+# 1. Copy and install WASM package + pg
+COPY packages/exochain-wasm/ /app/packages/exochain-wasm/
+RUN echo '{"type":"module","dependencies":{"pg":"^8.13.0"}}' > package.json && \
+    npm install --production 2>/dev/null
+
+# 2. Make WASM accessible via both relative paths and package name
+#    Relative: from /app/dist/index.js, ../../packages and ../../../packages
+#    both resolve upward and eventually look for /packages/
+RUN ln -sf /app/packages /packages && \
+    mkdir -p /app/node_modules/@exoeth && \
+    ln -sf /app/packages/exochain-wasm /app/node_modules/@exoeth/exochain-wasm
+
+# 3. Copy service code
+COPY ${SERVICE_DIR}/ /app/
+
+ENV NODE_ENV=production
+CMD ["node", "src/index.js"]

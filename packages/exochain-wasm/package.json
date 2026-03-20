@@ -1,0 +1,15 @@
+{
+  "name": "@exoeth/exochain-wasm",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js",
+  "description": "ExoChain governance engine compiled to WASM — 28K+ lines of Rust running in Node.js",
+  "exports": {
+    ".": "./index.js",
+    "./wasm": "./wasm/exochain_wasm.js"
+  },
+  "files": [
+    "index.js",
+    "wasm/"
+  ]
+}

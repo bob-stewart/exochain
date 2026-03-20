@@ -1,0 +1,319 @@
+version: "3.9"
+
+networks:
+  exoeth:
+    driver: bridge
+
+volumes:
+  pgdata:
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: exoeth
+      POSTGRES_USER: exoeth
+      POSTGRES_PASSWORD: exoeth_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U exoeth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - exoeth
+
+  # ── Gateway (Orchestrator) ──────────────────────────────────
+  gateway-api:
+    build:
+      context: ../..
+      dockerfile: services/gateway-api/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+      IDENTITY_URL: http://identity-service:3001
+      CONSENT_URL: http://consent-service:3002
+      GOVERNANCE_URL: http://governance-engine:3003
+      DECISION_FORGE_URL: http://decision-forge:3004
+      CROSSCHECK_URL: http://crosscheck-adapter:3005
+      PROVENANCE_URL: http://provenance-writer:3006
+      AUDIT_URL: http://audit-api:3007
+      NOTIFICATION_URL: http://notification-service:3008
+      POLICY_URL: http://policy-distribution:3009
+    depends_on:
+      postgres:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      consent-service:
+        condition: service_started
+      governance-engine:
+        condition: service_started
+      decision-forge:
+        condition: service_started
+      crosscheck-adapter:
+        condition: service_started
+      provenance-writer:
+        condition: service_started
+      audit-api:
+        condition: service_started
+      notification-service:
+        condition: service_started
+      policy-distribution:
+        condition: service_started
+    networks:
+      - exoeth
+
+  # ── 0dentity · Identity Service ─────────────────────────────
+  identity-service:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/identity-service
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── LiveSafe · Consent Service ──────────────────────────────
+  consent-service:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/consent-service
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── Governance Engine ───────────────────────────────────────
+  governance-engine:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/governance-engine
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── Decision Forge ──────────────────────────────────────────
+  decision-forge:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/decision-forge
+    ports:
+      - "3004:3004"
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── CrossChecked · Consensus Adapter ────────────────────────
+  crosscheck-adapter:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/crosscheck-adapter
+    ports:
+      - "3005:3005"
+    environment:
+      PORT: 3005
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── ExoChain · Provenance Writer ────────────────────────────
+  provenance-writer:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/provenance-writer
+    ports:
+      - "3006:3006"
+    environment:
+      PORT: 3006
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── Audit API ───────────────────────────────────────────────
+  audit-api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/audit-api
+    ports:
+      - "3007:3007"
+    environment:
+      PORT: 3007
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── Notification Service ────────────────────────────────────
+  notification-service:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/notification-service
+    ports:
+      - "3008:3008"
+    environment:
+      PORT: 3008
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── LegalDyne · Policy Distribution ─────────────────────────
+  policy-distribution:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/policy-distribution
+    ports:
+      - "3009:3009"
+    environment:
+      PORT: 3009
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exoeth
+
+  # ── Syntaxis Orchestrator ───────────────────────────────────
+  syntaxis-orchestrator:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/syntaxis-orchestrator
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+      GATEWAY_URL: http://gateway-api:3000
+      IDENTITY_URL: http://identity-service:3001
+      CONSENT_URL: http://consent-service:3002
+      CROSSCHECK_URL: http://crosscheck-adapter:3005
+      AUDIT_URL: http://audit-api:3007
+      NOTIFICATION_URL: http://notification-service:3008
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway-api:
+        condition: service_started
+    networks:
+      - exoeth
+
+  # ── Syntaxis Visual Builder ─────────────────────────────────
+  syntaxis-builder:
+    build: ../../apps/syntaxis-builder
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+    networks:
+      - exoeth
+
+  # ── CAIP — CTO Assessment Intelligence Platform ─────────────
+  caip-engine:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.service
+      args:
+        SERVICE_DIR: services/caip-engine
+    ports:
+      - "3011:3011"
+    environment:
+      PORT: 3011
+      DATABASE_URL: postgresql://exoeth:exoeth_dev@postgres:5432/exoeth
+      SYNTAXIS_URL: http://syntaxis-orchestrator:3010
+      PROVENANCE_URL: http://provenance-writer:3006
+      AUDIT_URL: http://audit-api:3007
+    depends_on:
+      postgres:
+        condition: service_healthy
+      syntaxis-orchestrator:
+        condition: service_started
+      provenance-writer:
+        condition: service_started
+      audit-api:
+        condition: service_started
+    networks:
+      - exoeth
+
+  # ── Dashboard UI ────────────────────────────────────────────
+  dashboard:
+    build: ../../apps/dashboard
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      GATEWAY_URL: http://gateway-api:3000
+      PROVENANCE_URL: http://provenance-writer:3006
+      AUDIT_URL: http://audit-api:3007
+      NOTIFICATION_URL: http://notification-service:3008
+      POLICY_URL: http://policy-distribution:3009
+      SYNTAXIS_URL: http://syntaxis-orchestrator:3010
+      CAIP_URL: http://caip-engine:3011
+    depends_on:
+      - gateway-api
+      - syntaxis-orchestrator
+      - caip-engine
+    networks:
+      - exoeth

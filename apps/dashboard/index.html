@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Syntaxis — Governance Orchestration</title>
+<style>
+:root{--bg:#06080f;--bg2:#0d1117;--bg3:#161b22;--border:rgba(255,255,255,.06);--glass:rgba(255,255,255,.04);--glass2:rgba(255,255,255,.08);--text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;--purple:#a371f7;--green:#3fb950;--red:#f85149;--yellow:#d29922;--cyan:#39d2c0;--orange:#f0883e;--pink:#f778ba;--glow-purple:rgba(163,113,247,.25);--glow-green:rgba(63,185,80,.25);--glow-cyan:rgba(57,210,192,.25);--glow-orange:rgba(240,136,62,.25);--glow-blue:rgba(88,166,255,.25);--glow-red:rgba(248,81,73,.25)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow:hidden}
+
+/* Header */
+.header{height:56px;background:rgba(13,17,23,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:100;position:relative}
+.header h1{font-size:18px;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .sub{font-size:11px;color:var(--text2);letter-spacing:1px}
+.brands{display:flex;gap:5px;margin-left:auto}
+.brand-pill{padding:3px 10px;border-radius:20px;font-size:9px;font-weight:600;backdrop-filter:blur(8px)}
+
+/* Nav */
+.nav{height:44px;background:rgba(13,17,23,.6);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:stretch;padding:0 16px;gap:2px;z-index:100;position:relative}
+.nav-btn{padding:0 18px;font-size:12px;font-weight:500;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:all .2s}
+.nav-btn.active{color:var(--purple);border-bottom-color:var(--purple)}
+.nav-btn:hover{color:var(--text)}
+
+/* Main layout */
+.main{display:flex;height:calc(100vh - 100px)}
+.sidebar{width:360px;background:rgba(13,17,23,.7);backdrop-filter:blur(16px);border-right:1px solid var(--border);overflow-y:auto;padding:16px;flex-shrink:0}
+.canvas-area{flex:1;position:relative;overflow:hidden}
+
+/* Page visibility */
+.page{display:none}.page.active{display:flex;height:100%}
+
+/* Glass cards */
+.glass{background:rgba(255,255,255,.03);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:14px}
+.glass-bright{background:rgba(255,255,255,.06);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px}
+.glass:hover{border-color:rgba(255,255,255,.12)}
+
+/* Form */
+.fg{margin-bottom:10px}
+label{display:block;font-size:10px;color:var(--text2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+input,select,textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;transition:border .2s}
+input:focus,select:focus{border-color:var(--purple);box-shadow:0 0 0 3px var(--glow-purple)}
+.btn{padding:10px 20px;border:none;border-radius:10px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-p{background:linear-gradient(135deg,var(--purple),var(--accent));color:white;box-shadow:0 4px 15px var(--glow-purple)}
+.btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 25px var(--glow-purple)}
+.btn-p:disabled{opacity:.4;transform:none}
+.btn-s{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:6px 12px}
+.btn-s:hover{border-color:var(--purple);color:var(--text)}
+.badge{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px}
+.row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0}
+.row .k{color:var(--text2)}.row .v{font-weight:500}
+.section-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text2);margin:16px 0 8px;font-weight:600}
+
+/* ═══════ WORKFLOW CANVAS ═══════ */
+.wf-canvas{width:100%;height:100%;position:relative}
+.wf-canvas svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+/* Node */
+.wf-node{position:absolute;width:180px;border-radius:16px;padding:14px;cursor:pointer;z-index:10;transition:all .4s cubic-bezier(.4,0,.2,1);backdrop-filter:blur(24px) saturate(1.5)}
+.wf-node .node-glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;position:relative;overflow:hidden}
+.wf-node .node-glass::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent)}
+.wf-node.idle .node-glass{border-color:rgba(255,255,255,.06)}
+.wf-node.active .node-glass{border-color:var(--node-color,var(--purple));box-shadow:0 0 30px var(--node-glow,var(--glow-purple)),inset 0 0 20px rgba(255,255,255,.02)}
+.wf-node.done .node-glass{border-color:var(--green);box-shadow:0 0 20px var(--glow-green)}
+.wf-node.error .node-glass{border-color:var(--red);box-shadow:0 0 20px var(--glow-red)}
+
+.wf-node .node-icon{font-size:22px;margin-bottom:6px}
+.wf-node .node-name{font-size:12px;font-weight:600;margin-bottom:2px}
+.wf-node .node-sub{font-size:10px;color:var(--text2)}
+.wf-node .node-status{margin-top:8px;font-size:10px;font-weight:500;display:flex;align-items:center;gap:5px}
+.wf-node .node-pulse{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.wf-node.idle .node-pulse{background:rgba(255,255,255,.15)}
+.wf-node.active .node-pulse{background:var(--node-color,var(--purple));animation:nodePulse 1.2s ease-in-out infinite}
+.wf-node.done .node-pulse{background:var(--green)}
+.wf-node.error .node-pulse{background:var(--red)}
+.wf-node .node-detail{margin-top:6px;font-size:9px;color:var(--text2);line-height:1.4;max-height:0;overflow:hidden;transition:max-height .3s}
+.wf-node.done .node-detail,.wf-node.active .node-detail{max-height:80px}
+
+@keyframes nodePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+
+/* Edge animations */
+.edge-path{fill:none;stroke:rgba(255,255,255,.06);stroke-width:2}
+.edge-path.active{stroke:var(--purple);stroke-width:2;filter:drop-shadow(0 0 4px var(--glow-purple))}
+.edge-path.done{stroke:var(--green);stroke-width:2;filter:drop-shadow(0 0 3px var(--glow-green))}
+.edge-particle{fill:var(--purple);opacity:0}
+.edge-particle.active{opacity:1;r:3}
+
+@keyframes flowParticle{0%{offset-distance:0%}100%{offset-distance:100%}}
+
+/* Scorecard overlay */
+.scorecard-overlay{position:absolute;top:16px;right:16px;width:320px;max-height:calc(100% - 32px);overflow-y:auto;z-index:20}
+.score-bar{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-top:3px}
+.score-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* Result banner */
+.result-banner{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);z-index:20;backdrop-filter:blur(24px);border-radius:16px;padding:16px 32px;text-align:center;border:1px solid rgba(255,255,255,.1);min-width:400px}
+.result-banner.approved{background:rgba(63,185,80,.08);border-color:rgba(63,185,80,.3)}
+.result-banner.denied{background:rgba(248,81,73,.08);border-color:rgba(248,81,73,.3)}
+.result-banner .rb-score{font-size:36px;font-weight:800;letter-spacing:2px}
+.result-banner .rb-band{font-size:13px;font-weight:600;margin-top:2px}
+.result-banner .rb-sub{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* History items */
+.hist-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all .2s}
+.hist-item:hover{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
+.hist-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* Other pages */
+.page-scroll{padding:24px;overflow-y:auto;height:100%;width:100%}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{text-align:center}.stat .n{font-size:28px;font-weight:700}.stat .l{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.empty{text-align:center;padding:40px;color:var(--text2);font-size:12px}
+.combinator-chip{display:inline-flex;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600;background:rgba(163,113,247,.12);color:var(--purple);margin:1px}
+.hash{color:var(--cyan);font-family:'SF Mono',monospace;font-size:10px}
+.timeline-item{display:flex;gap:10px;margin-bottom:6px;font-size:11px}
+.timeline-item .tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.step-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;margin-bottom:4px}
+.step-row .sd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.step-row .sd.done{background:var(--green)}.step-row .sd.fail{background:var(--red)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+/* Background grid */
+.bg-grid{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:32px 32px;z-index:0}
+
+/* Node config modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.open{opacity:1;pointer-events:auto}
+.modal{width:560px;max-height:80vh;overflow-y:auto;background:rgba(22,27,34,.95);backdrop-filter:blur(24px) saturate(1.4);border:1px solid rgba(255,255,255,.1);border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.6);transform:translateY(12px) scale(.97);transition:transform .25s cubic-bezier(.4,0,.2,1)}
+.modal-overlay.open .modal{transform:translateY(0) scale(1)}
+.modal-header{display:flex;align-items:center;gap:12px;padding:20px 24px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.modal-header .mh-icon{font-size:28px}
+.modal-header .mh-title{font-size:16px;font-weight:700}
+.modal-header .mh-sub{font-size:11px;color:var(--text2)}
+.modal-header .mh-close{margin-left:auto;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:var(--text2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-header .mh-close:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.modal-body{padding:16px 24px 24px}
+.cfg-section{margin-bottom:16px}
+.cfg-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text2);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.cfg-section-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.06)}
+.cfg-row{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04);border-radius:8px;margin-bottom:4px;font-size:11px}
+.cfg-row .cfg-key{color:var(--text2);font-weight:500}
+.cfg-row .cfg-val{font-weight:600;text-align:right;max-width:55%;word-break:break-all}
+.cfg-row .cfg-val.editable{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:2px 6px;cursor:text}
+.cfg-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600;margin:1px}
+.cfg-chip-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.cfg-toggle{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,.1);position:relative;cursor:pointer;border:none;transition:background .2s}
+.cfg-toggle.on{background:var(--green)}
+.cfg-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:white;transition:transform .2s}
+.cfg-toggle.on::after{transform:translateX(16px)}
+.cfg-code{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:10px 12px;font-family:'SF Mono',monospace;font-size:10px;line-height:1.5;color:var(--cyan);white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto}
+</style></head><body>
+
+<div class="header">
+  <div><h1>Syntaxis</h1></div>
+  <div class="sub">Governance Orchestration</div>
+  <div class="brands">
+    <span class="brand-pill" style="background:rgba(57,210,192,.1);border:1px solid rgba(57,210,192,.3);color:var(--cyan)">ExoChain</span>
+    <span class="brand-pill" style="background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.3);color:var(--green)">CrossChecked</span>
+    <span class="brand-pill" style="background:rgba(163,113,247,.1);border:1px solid rgba(163,113,247,.3);color:var(--purple)">LegalDyne</span>
+    <span class="brand-pill" style="background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.3);color:var(--orange)">Decision Forge</span>
+    <span class="brand-pill" style="background:rgba(210,153,34,.1);border:1px solid rgba(210,153,34,.3);color:var(--yellow)">LiveSafe</span>
+    <span class="brand-pill" style="background:rgba(88,166,255,.1);border:1px solid rgba(88,166,255,.3);color:var(--accent)">0dentity</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="nav('caip')">CTO Assessment</button>
+  <button class="nav-btn" onclick="nav('onboard')">PACE Onboarding</button>
+  <button class="nav-btn" onclick="nav('workflow')">Orchestrated Workflow</button>
+  <button class="nav-btn" onclick="nav('forum')">Decision Forum</button>
+  <button class="nav-btn" onclick="nav('provenance')">ExoChain</button>
+  <button class="nav-btn" onclick="nav('audit')">Audit Ledger</button>
+  <button class="nav-btn" onclick="nav('status')">System</button>
+</div>
+
+<!-- ═══════ CAIP — NODE WORKFLOW ═══════ -->
+<div class="page active" id="pg-caip">
+  <div class="sidebar" id="caip-sidebar">
+    <div class="glass" style="margin-bottom:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:2px">CTO Assessment Intelligence</div>
+      <div style="font-size:10px;color:var(--text2)">Wintonium Framework v3.8 + ExoChain</div>
+    </div>
+    <div class="fg"><label>CTO Name</label><input id="ca-name" value="Alex Rivera"></div>
+    <div class="fg"><label>Company</label><input id="ca-company" value="MedAI Systems"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="fg"><label>Team Size</label><input type="number" id="ca-team" value="25"></div>
+      <div class="fg"><label>Investor</label><select id="ca-investor"><option>VC</option><option selected>PE</option><option>Bootstrap</option><option>Angel</option></select></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="fg"><label>Role Type</label><select id="ca-roletype"><option value="founder_cto">Founder CTO</option><option value="hired_cto" selected>Hired CTO</option><option value="promoted_cto">Promoted</option></select></div>
+      <div class="fg"><label>Years</label><input type="number" id="ca-years" value="3"></div>
+    </div>
+    <div class="fg"><label>Industry</label><input id="ca-industry" value="HealthTech / AI"></div>
+    <div class="fg"><label>Purpose</label><select id="ca-purpose"><option value="AVC_onboarding">AVC Cohort Onboarding</option><option value="fractional_engagement" selected>Fractional CTO</option><option value="diligence">Board Due Diligence</option><option value="self_dev">Self-Development</option></select></div>
+    <div style="display:flex;gap:12px;margin-bottom:12px">
+      <label style="font-size:10px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="ca-ai" checked> AI Native</label>
+      <label style="font-size:10px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="ca-b2b" checked> B2B Enterprise</label>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-p" style="flex:1" id="ca-btn" onclick="runCAIP()">Run Assessment</button>
+      <button class="btn btn-s" onclick="caipPreset('founder')">Founder</button>
+      <button class="btn btn-s" onclick="caipPreset('scaling')">Scaling</button>
+    </div>
+    <div class="section-label">Assessment History</div>
+    <div id="caip-history"></div>
+  </div>
+  <div class="canvas-area">
+    <div class="bg-grid"></div>
+    <div class="wf-canvas" id="wf-canvas">
+      <svg id="wf-svg"></svg>
+      <!-- Nodes placed by JS -->
+    </div>
+    <div class="scorecard-overlay" id="scorecard-overlay" style="display:none"></div>
+    <div class="result-banner" id="result-banner" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══════ OTHER PAGES (simplified) ═══════ -->
+<div class="page" id="pg-onboard"><div class="page-scroll"><div class="grid-2"><div>
+  <div class="glass"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Executive PACE Onboarding</div>
+    <div class="fg"><label>Name</label><input id="ob-name" value="Dr. Sarah Chen"></div>
+    <div class="fg"><label>Wallet</label><input id="ob-wallet" value="0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"></div>
+    <div class="fg"><label>Role</label><select id="ob-role"><option value="ceo">CEO</option><option value="cto">CTO</option><option value="gc">General Counsel</option><option value="cmo" selected>CMO</option></select></div>
+    <div class="fg"><label>Organization</label><input id="ob-org" value="CyberMedica"></div>
+    <button class="btn btn-p" style="width:100%" onclick="doOnboard()">Enroll Executive</button>
+  </div></div><div><div class="glass" id="onboard-result"><div class="empty">Enroll an executive to see results</div></div><div class="glass" style="margin-top:12px" id="exec-list-wrap"><div class="section-label">Enrolled</div><div id="exec-list"></div></div></div></div></div></div>
+
+<div class="page" id="pg-workflow"><div class="page-scroll"><div class="grid-2"><div>
+  <div class="glass"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Execute Orchestrated Workflow</div>
+    <div class="fg"><label>Title</label><input id="wf-title" value="Clinical Trial Governance"></div>
+    <div class="fg"><label>Wallet</label><input id="wf-wallet" value="0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"></div>
+    <div class="fg"><label>Decision Class</label><select id="wf-class"><option>Operational</option><option selected>Standard</option><option>Strategic</option><option>Constitutional</option></select></div>
+    <button class="btn btn-p" style="width:100%" id="wf-btn" onclick="doWorkflow()">Execute Pipeline</button>
+  </div></div><div><div class="glass" id="wf-result"><div class="empty">Run a workflow to see results</div></div></div></div></div></div>
+
+<div class="page" id="pg-forum"><div class="page-scroll"><div class="grid-4" style="margin-bottom:16px"><div class="glass stat"><div class="n" style="color:var(--yellow)" id="f-pending">0</div><div class="l">Pending</div></div><div class="glass stat"><div class="n" style="color:var(--red)" id="f-contested">0</div><div class="l">Contested</div></div><div class="glass stat"><div class="n" style="color:var(--green)" id="f-resolved">0</div><div class="l">Resolved</div></div><div class="glass stat"><div class="n" style="color:var(--cyan)" id="f-chain">&#10003;</div><div class="l">Chain</div></div></div><div class="grid-2"><div class="glass"><div class="section-label">Triage Queue</div><div id="triage-queue"><div class="empty">No decisions</div></div></div><div class="glass"><div class="section-label">Timeline</div><div id="forum-timeline"><div class="empty">No events</div></div></div></div></div></div>
+
+<div class="page" id="pg-provenance"><div class="page-scroll"><div class="glass"><div class="section-label">ExoChain Provenance Receipts</div><div id="prov-list"><div class="empty">No receipts</div></div></div></div></div>
+<div class="page" id="pg-audit"><div class="page-scroll"><div class="glass"><div class="section-label">Audit Ledger</div><div id="audit-list"><div class="empty">No entries</div></div></div></div></div>
+<div class="page" id="pg-status"><div class="page-scroll"><div class="grid-2"><div class="glass"><div class="section-label">Services</div><div id="svc-health"></div></div><div class="glass"><div class="section-label">Modules</div><div id="module-list"></div></div></div></div></div>
+
+<!-- Node Config Modal -->
+<div class="modal-overlay" id="node-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="mh-icon" id="modal-icon"></span>
+      <div><div class="mh-title" id="modal-title"></div><div class="mh-sub" id="modal-sub"></div></div>
+      <button class="mh-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════ NODE CONFIGURATIONS ═══════
+const NODE_CONFIGS = {
+  input: {
+    module: 'caip-engine',
+    exochainCrates: ['exo-assessment','exo-identity'],
+    gatewayPrefix: 'caip_',
+    service: { name:'CAIP Engine', port:3011, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'cto_name', type:'string', required:true, description:'Full name of the CTO or candidate' },
+      { key:'company', type:'object', required:true, description:'Company profile (name, team_size, investor_type, industry)' },
+      { key:'cto_profile', type:'object', required:true, description:'Role type (founder/hired/promoted), years in role' },
+      { key:'engagement_purpose', type:'enum', values:['AVC_onboarding','fractional_engagement','diligence','self_dev'], description:'Assessment use case' },
+    ],
+    outputs: ['assessment_id','maturity_state','dimensions','composite'],
+    combinators: [],
+    version: '1.0.0',
+  },
+  maturity: {
+    module: 'caip-engine',
+    exochainCrates: ['exo-governance'],
+    gatewayPrefix: 'caip_',
+    service: { name:'Maturity Classifier', port:3011, protocol:'Internal', healthEndpoint:'/health' },
+    parameters: [
+      { key:'team_size', type:'integer', required:true, description:'Number of engineers on the team' },
+      { key:'has_repeatable_sales', type:'boolean', required:true, description:'Company has repeatable sales motion' },
+      { key:'has_multiple_modules', type:'boolean', required:true, description:'Product has multiple modules/services' },
+      { key:'has_formal_arch_function', type:'boolean', required:true, description:'Dedicated architecture function exists' },
+    ],
+    outputs: ['maturity_state'],
+    rules: 'team>=40 && arch → Scaling\nteam>=15 && modules → Complex\nteam>=5 && sales → Validated\nelse → Founding',
+    combinators: [{ type:'Gate', exochainTerm:'Lookup(maturity_classified)', description:'Maturity must be classified before scoring' }],
+    version: '1.0.0',
+  },
+  identity: {
+    module: '0dentity',
+    exochainCrates: ['exo-identity','exo-consent'],
+    gatewayPrefix: 'identity_',
+    service: { name:'0dentity Identity Service', port:3001, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'walletAddress', type:'address', required:true, description:'Ethereum wallet address (0x...)' },
+    ],
+    outputs: ['odentityId','walletAddress','roles','organization','attestationRefs'],
+    councilRoles: [
+      { id:'subscriber', name:'Subscriber', vetoCapable:true },
+      { id:'trustee', name:'PACE Trustee', vetoCapable:false },
+    ],
+    paceConfig: { threshold:'3-of-4', recoveryPolicy:'timelocked_48h', shards:4 },
+    combinators: [
+      { type:'Gate', exochainTerm:'Lookup(identityResolved)', description:'Identity must resolve before execution' },
+      { type:'Threshold', exochainTerm:'GreaterThanOrEqual(trustee_shards)', args:{percentage:75}, description:'PACE trustee quorum' },
+    ],
+    version: '1.0.0',
+  },
+  consent: {
+    module: 'livesafe',
+    exochainCrates: ['exo-consent','exo-identity'],
+    gatewayPrefix: 'livesafe_',
+    service: { name:'LiveSafe Consent Service', port:3002, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'assetId', type:'address', required:true, description:'Target asset or contract to verify consent for' },
+    ],
+    outputs: ['consentId','assetId','owner','allowedUses','restrictions','effectiveAt','expiresAt'],
+    combinators: [
+      { type:'Gate', exochainTerm:'Lookup(consentVerified)', description:'Consent must be verified' },
+      { type:'Veto', exochainTerm:'Not(veto_exercised)', description:'Subscriber can always revoke consent' },
+      { type:'TimeLock', exochainTerm:'GreaterThanOrEqual(elapsed_ms)', args:{duration:'365d'}, description:'Consent expiry period' },
+    ],
+    decisionClasses: ['Operational','Standard'],
+    version: '1.0.0',
+  },
+  scoring: {
+    module: 'caip-engine',
+    exochainCrates: ['exo-assessment'],
+    gatewayPrefix: 'caip_',
+    service: { name:'Multi-Rater Scoring Engine', port:3011, protocol:'Internal', healthEndpoint:'/health' },
+    parameters: [
+      { key:'self_score', type:'integer (1-5)', required:false, description:'CTO self-assessment score' },
+      { key:'reviewer_score', type:'integer (1-5)', required:false, description:'Fractional CTO / advisor score' },
+      { key:'ai_inferred_score', type:'integer (1-5)', required:true, description:'AI behavioral inference score' },
+    ],
+    outputs: ['composite_score','level','gap_type','divergence_flag','character_markers'],
+    weights: { self:0.25, reviewer:0.45, ai:0.30 },
+    dimensions: 'C1–C11 (11 dimensions, see Wintonium Framework v3.8)',
+    levelMap: { 5:'Distinctive', 4:'Proficient', 3:'Building', 2:'Emerging', 1:'Foundation' },
+    combinators: [],
+    version: '1.0.0',
+  },
+  xcheck: {
+    module: 'crosschecked',
+    exochainCrates: ['exo-governance','exo-gatekeeper'],
+    gatewayPrefix: 'crosscheck_',
+    service: { name:'CrossChecked Adapter', port:3005, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'proposal', type:'object', required:true, description:'Proposal to validate (proposalId, walletAddress, target, payload)' },
+      { key:'identity', type:'object', required:true, description:'Resolved identity from 0dentity' },
+    ],
+    outputs: ['crosscheckId','consensus','conflictsDetected','riskScore','signals'],
+    signals: [
+      { source:'policy_engine', description:'Checks proposal against active policy version' },
+      { source:'identity_registry', description:'Confirms identity is bound and attested' },
+      { source:'risk_model', description:'Evaluates composite risk score' },
+      { source:'conflict_detector', description:'Scans for conflicting active proposals' },
+    ],
+    crosscheckModes: ['QuickCheck','Crosscheck','DevilsAdvocate','RedTeam','Audit'],
+    combinators: [
+      { type:'Reproducible', exochainTerm:'GreaterThanOrEqual(trial_count)', args:{min_trials:2}, description:'Multiple independent signal confirmations' },
+      { type:'Threshold', exochainTerm:'GreaterThanOrEqual(approve_pct)', args:{percentage:75}, description:'Signal consensus threshold' },
+    ],
+    version: '1.0.0',
+  },
+  govern: {
+    module: 'decision-forum',
+    exochainCrates: ['exo-governance','exo-authority','exo-legal','exo-gatekeeper'],
+    gatewayPrefix: 'governance_',
+    service: { name:'Governance Engine', port:3003, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'proposal', type:'object', required:true, description:'Original execution request' },
+      { key:'identity', type:'object', required:true, description:'Resolved identity' },
+      { key:'consent', type:'object', required:true, description:'Consent resolution' },
+      { key:'crosscheck', type:'object', required:true, description:'CrossChecked consensus result' },
+    ],
+    outputs: ['governanceCaseId','decision','reasons','checks','policyVersion'],
+    gates: ['identity_verified','consent_valid','crosscheck_consensus','wallet_present','target_present','payload_present'],
+    decisionClasses: ['Operational','Standard','Strategic','Constitutional'],
+    dealBreakerDimensions: ['C1','C3','C8','C10'],
+    nonNegotiableRule: 'Score <= 2 on non-negotiable dimension → deal-breaker flag',
+    combinators: [
+      { type:'All', exochainTerm:'ForAll', description:'All gates must pass' },
+      { type:'Gate', exochainTerm:'Lookup(condition)', description:'Named predicate checks' },
+      { type:'Veto', exochainTerm:'Not(veto_exercised)', description:'Authority veto' },
+      { type:'Escalate', exochainTerm:'TriageItem.priority.bump()', description:'Escalation to higher authority' },
+    ],
+    councilRoles: [
+      { id:'chair', name:'Council Chair', vetoCapable:true, decisionClasses:['Constitutional','Strategic'] },
+      { id:'member', name:'Council Member', vetoCapable:false, decisionClasses:['Operational','Standard','Strategic','Constitutional'] },
+    ],
+    version: '1.0.0',
+  },
+  forge: {
+    module: 'decision-forum',
+    exochainCrates: ['exo-governance','exo-gatekeeper'],
+    gatewayPrefix: 'governance_',
+    service: { name:'Decision Forge', port:3004, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'proposalId', type:'string', required:true, description:'Source proposal / block ID' },
+      { key:'governanceDecision', type:'object', required:true, description:'Governance engine decision (approved/denied)' },
+    ],
+    outputs: ['forgeId','forgedDecision','confidence','rationale','policyVersion'],
+    forgedDecisions: ['execute','hold_for_review'],
+    confidenceModel: 'approved → 0.94 | denied → 0.87',
+    combinators: [
+      { type:'Threshold', exochainTerm:'GreaterThanOrEqual(approve_pct)', args:{percentage:66}, description:'Vote threshold' },
+      { type:'TimeLock', exochainTerm:'GreaterThanOrEqual(elapsed_ms)', args:{duration:'24h'}, description:'Deliberation period' },
+      { type:'Gate', exochainTerm:'Lookup(identityVerified)', description:'Identity gate' },
+    ],
+    version: '1.0.0',
+  },
+  exochain: {
+    module: 'exochain',
+    exochainCrates: ['exo-ledger','exo-provenance','exo-hash'],
+    gatewayPrefix: 'provenance_',
+    service: { name:'ExoChain Provenance Writer', port:3006, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'eventType', type:'string', required:true, description:'Type of event (execution_pipeline_complete, caip_assessment_complete, etc.)' },
+      { key:'correlationId', type:'string', required:true, description:'Pipeline correlation ID for traceability' },
+      { key:'payload', type:'object', required:true, description:'Full payload to hash (governance decision, assessment result, etc.)' },
+    ],
+    outputs: ['receiptId','payloadHash','immutable','chain','writtenAt'],
+    hashAlgorithm: 'SHA-256',
+    chain: 'exochain-local',
+    immutability: true,
+    combinators: [],
+    version: '1.0.0',
+  },
+  audit: {
+    module: 'audit-api',
+    exochainCrates: ['exo-audit','exo-ledger'],
+    gatewayPrefix: 'audit_',
+    service: { name:'Audit API', port:3007, protocol:'HTTP/JSON', healthEndpoint:'/health' },
+    parameters: [
+      { key:'eventType', type:'string', required:true, description:'Audit event type' },
+      { key:'correlationId', type:'string', required:true, description:'Correlation ID linking to provenance' },
+      { key:'actor', type:'string', required:false, description:'0dentity ID of the acting entity' },
+    ],
+    outputs: ['recorded','entry'],
+    queryEndpoints: ['/log (all entries)','/trace/:correlationId (filtered)'],
+    retentionPolicy: 'Immutable — no deletion permitted',
+    combinators: [],
+    version: '1.0.0',
+  },
+};
+
+// ═══════ WORKFLOW NODE DEFINITIONS ═══════
+const NODES = [
+  { id:'input',    x:40,  y:60,  icon:'📋', name:'Assessment Input',     sub:'CTO Profile + Company',   color:'var(--accent)',  glow:'var(--glow-blue)' },
+  { id:'maturity', x:40,  y:220, icon:'📊', name:'Maturity Classifier',  sub:'Founding→Scaling',        color:'var(--purple)',  glow:'var(--glow-purple)' },
+  { id:'identity', x:260, y:60,  icon:'🔐', name:'0dentity',             sub:'PACE Identity Binding',   color:'var(--accent)',  glow:'var(--glow-blue)' },
+  { id:'consent',  x:260, y:220, icon:'🛡️', name:'LiveSafe',             sub:'Consent Verification',    color:'var(--yellow)',  glow:'rgba(210,153,34,.25)' },
+  { id:'scoring',  x:480, y:60,  icon:'🎯', name:'Multi-Rater Scoring',  sub:'Self 25% / Review 45% / AI 30%', color:'var(--orange)', glow:'var(--glow-orange)' },
+  { id:'xcheck',   x:480, y:220, icon:'🔍', name:'CrossChecked',         sub:'4-Signal Consensus',      color:'var(--green)',   glow:'var(--glow-green)' },
+  { id:'govern',   x:700, y:60,  icon:'⚖️', name:'Governance Engine',    sub:'Gate Evaluation',         color:'var(--purple)',  glow:'var(--glow-purple)' },
+  { id:'forge',    x:700, y:220, icon:'🔥', name:'Decision Forge',       sub:'Combinator Chain',        color:'var(--orange)',  glow:'var(--glow-orange)' },
+  { id:'exochain', x:920, y:140, icon:'⛓️', name:'ExoChain',             sub:'Provenance Receipt',      color:'var(--cyan)',    glow:'var(--glow-cyan)' },
+  { id:'audit',    x:920, y:300, icon:'📜', name:'Audit Ledger',         sub:'Immutable Record',        color:'var(--green)',   glow:'var(--glow-green)' },
+];
+
+const EDGES = [
+  ['input','maturity'],['input','identity'],
+  ['maturity','scoring'],['identity','consent'],
+  ['consent','xcheck'],['scoring','govern'],
+  ['xcheck','govern'],['govern','forge'],
+  ['forge','exochain'],['exochain','audit'],
+];
+
+// ═══════ RENDER WORKFLOW CANVAS ═══════
+function renderCanvas() {
+  const canvas = document.getElementById('wf-canvas');
+  const svg = document.getElementById('wf-svg');
+  // Clear previous
+  canvas.querySelectorAll('.wf-node').forEach(n => n.remove());
+  svg.innerHTML = '<defs><filter id="glow"><feGaussianBlur stdDeviation="3" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+
+  // Edges
+  EDGES.forEach(([from, to], i) => {
+    const a = NODES.find(n => n.id === from), b = NODES.find(n => n.id === to);
+    const x1 = a.x + 180, y1 = a.y + 50, x2 = b.x, y2 = b.y + 50;
+    const mx = (x1 + x2) / 2;
+    const d = `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('class', 'edge-path');
+    path.id = `edge-${from}-${to}`;
+    svg.appendChild(path);
+    // Particle
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('r', '3');
+    circle.setAttribute('class', 'edge-particle');
+    circle.id = `particle-${from}-${to}`;
+    circle.style.offsetPath = `path('${d}')`;
+    svg.appendChild(circle);
+  });
+
+  // Nodes
+  NODES.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'wf-node idle';
+    el.id = `node-${n.id}`;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    el.style.setProperty('--node-color', n.color);
+    el.style.setProperty('--node-glow', n.glow);
+    el.innerHTML = `<div class="node-glass">
+      <div class="node-icon">${n.icon}</div>
+      <div class="node-name">${n.name}</div>
+      <div class="node-sub">${n.sub}</div>
+      <div class="node-status"><span class="node-pulse"></span><span class="node-status-text">Idle</span></div>
+      <div class="node-detail" id="detail-${n.id}"></div>
+    </div>`;
+    el.addEventListener('dblclick', (e) => { e.stopPropagation(); openNodeConfig(n.id); });
+    canvas.appendChild(el);
+  });
+}
+
+function setNodeState(id, state, detail) {
+  const el = document.getElementById(`node-${id}`);
+  if (!el) return;
+  el.className = `wf-node ${state}`;
+  el.querySelector('.node-status-text').textContent = state === 'active' ? 'Processing...' : state === 'done' ? 'Complete' : state === 'error' ? 'Failed' : 'Idle';
+  if (detail) document.getElementById(`detail-${id}`).textContent = detail;
+}
+
+function setEdgeState(from, to, state) {
+  const path = document.getElementById(`edge-${from}-${to}`);
+  const particle = document.getElementById(`particle-${from}-${to}`);
+  if (path) path.setAttribute('class', `edge-path ${state}`);
+  if (particle && state === 'active') {
+    particle.setAttribute('class', 'edge-particle active');
+    particle.style.animation = 'flowParticle 1s linear infinite';
+    particle.style.offsetPath = path ? `path('${path.getAttribute('d')}')` : '';
+  } else if (particle && state === 'done') {
+    particle.setAttribute('class', 'edge-particle');
+    particle.style.animation = '';
+  }
+}
+
+function resetCanvas() {
+  NODES.forEach(n => setNodeState(n.id, 'idle', ''));
+  EDGES.forEach(([f, t]) => setEdgeState(f, t, ''));
+  document.getElementById('scorecard-overlay').style.display = 'none';
+  document.getElementById('result-banner').style.display = 'none';
+}
+
+// ═══════ ANIMATED ASSESSMENT ═══════
+async function runCAIP() {
+  const btn = document.getElementById('ca-btn');
+  btn.disabled = true; btn.textContent = 'Assessing...';
+  resetCanvas();
+
+  const ts = parseInt(v('ca-team'));
+  const data = {
+    cto_name: v('ca-name'), company: { name: v('ca-company'), team_size: ts, funding_stage: 'Series B', investor_type: v('ca-investor'), industry: v('ca-industry'), ai_native: document.getElementById('ca-ai').checked, b2b_enterprise: document.getElementById('ca-b2b').checked, has_repeatable_sales: ts>=5, has_multiple_modules: ts>=15, has_enterprise_customers: document.getElementById('ca-b2b').checked, has_formal_arch_function: ts>=40 },
+    cto_profile: { role_type: v('ca-roletype'), years_in_role: parseInt(v('ca-years')) },
+    engagement_purpose: v('ca-purpose'),
+  };
+
+  // Animate nodes sequentially
+  const steps = [
+    { node:'input', edges:[], delay:0 },
+    { node:'maturity', edges:[['input','maturity']], delay:400 },
+    { node:'identity', edges:[['input','identity']], delay:800 },
+    { node:'consent', edges:[['identity','consent']], delay:1200 },
+    { node:'scoring', edges:[['maturity','scoring']], delay:1600 },
+    { node:'xcheck', edges:[['consent','xcheck']], delay:2000 },
+    { node:'govern', edges:[['scoring','govern'],['xcheck','govern']], delay:2400 },
+    { node:'forge', edges:[['govern','forge']], delay:2800 },
+    { node:'exochain', edges:[['forge','exochain']], delay:3200 },
+    { node:'audit', edges:[['exochain','audit']], delay:3600 },
+  ];
+
+  // Fire the actual request
+  const resultP = postJSON('/caip/assess', data);
+
+  // Animate
+  for (const step of steps) {
+    await sleep(step.delay ? 400 : 0);
+    step.edges.forEach(([f,t]) => setEdgeState(f, t, 'active'));
+    setNodeState(step.node, 'active');
+    // Complete previous
+    const prev = steps[steps.indexOf(step) - 1];
+    if (prev) {
+      setNodeState(prev.node, 'done');
+      prev.edges.forEach(([f,t]) => setEdgeState(f, t, 'done'));
+    }
+  }
+
+  // Wait for result
+  const res = await resultP;
+
+  // Complete last node
+  setNodeState('audit', 'done');
+  EDGES.forEach(([f,t]) => setEdgeState(f, t, 'done'));
+
+  // Add details to nodes
+  setNodeState('input', 'done', `${res.cto_name} — ${res.company.name}`);
+  setNodeState('maturity', 'done', `${res.maturity_state} (team: ${res.company.team_size})`);
+  setNodeState('identity', 'done', `PACE verified`);
+  setNodeState('consent', 'done', `Consent resolved`);
+  setNodeState('scoring', 'done', `Avg: ${res.composite.weighted_average}/5`);
+  setNodeState('xcheck', 'done', `Consensus passed`);
+  setNodeState('govern', 'done', `${res.composite.deal_breakers.length} deal-breakers`);
+  setNodeState('forge', 'done', `Combinators evaluated`);
+  const gc = res.governance_chain || [];
+  const hash = gc.find(g=>g.step==='exochain_provenance')?.result?.payloadHash;
+  setNodeState('exochain', 'done', hash ? hash.slice(0,20)+'...' : 'Receipt written');
+  setNodeState('audit', 'done', 'Recorded');
+
+  // Show scorecard
+  showScorecard(res);
+  showResultBanner(res);
+  loadCAIPHistory();
+
+  btn.disabled = false; btn.textContent = 'Run Assessment';
+}
+
+function showScorecard(a) {
+  const el = document.getElementById('scorecard-overlay');
+  el.style.display = 'block';
+  let h = '<div class="glass-bright" style="max-height:100%;overflow-y:auto">';
+  h += `<div style="font-size:12px;font-weight:600;margin-bottom:8px">Dimension Scorecard</div>`;
+  for (const [dim,d] of Object.entries(a.dimensions)) {
+    const pct = Math.round(d.composite_score/5*100);
+    const c = d.composite_score>=4?'var(--green)':d.composite_score>=3?'var(--accent)':d.composite_score>=2?'var(--yellow)':'var(--red)';
+    h += `<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-size:10px">
+        <span style="font-weight:600;color:${d.divergence_flag?'var(--red)':'var(--text)'}">${dim}</span>
+        <span style="color:${c};font-weight:600">${d.composite_score} ${d.level}</span>
+      </div>
+      <div class="score-bar"><div class="score-fill" style="width:${pct}%;background:${c}"></div></div>
+      <div style="display:flex;gap:6px;font-size:8px;color:var(--text2);margin-top:2px">
+        <span>S:${d.self_score} R:${d.reviewer_score} AI:${d.ai_inferred_score}</span>
+        <span style="margin-left:auto">${d.weight_label}</span>
+        ${d.divergence_flag?'<span style="color:var(--red)">DIV</span>':''}
+        ${d.gap_type?`<span style="color:var(--yellow)">${d.gap_type}</span>`:''}
+      </div>
+    </div>`;
+  }
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+function showResultBanner(a) {
+  const el = document.getElementById('result-banner');
+  const cf = a.composite;
+  const ok = cf.cohort_fit_score >= 60;
+  el.style.display = 'block';
+  el.className = `result-banner ${ok?'approved':'denied'}`;
+  el.innerHTML = `<div class="rb-score" style="color:${ok?'var(--green)':'var(--red)'}">${cf.cohort_fit_score}/100</div>
+    <div class="rb-band" style="color:${ok?'var(--green)':'var(--yellow)'}">${cf.cohort_fit_band}</div>
+    <div class="rb-sub">${a.cto_name} — ${a.company.name} — ${a.maturity_state} — Wtd: ${cf.weighted_average}/5 — ${cf.deal_breakers.length} deal-breakers</div>`;
+}
+
+function caipPreset(type) {
+  if(type==='founder'){v2('ca-name','Jordan Park');v2('ca-company','NexGenAI');v2('ca-team','8');document.getElementById('ca-investor').value='VC';document.getElementById('ca-roletype').value='founder_cto';v2('ca-years','2');v2('ca-industry','AI Infrastructure');document.getElementById('ca-purpose').value='AVC_onboarding';}
+  if(type==='scaling'){v2('ca-name','Dr. Priya Sharma');v2('ca-company','EnterpriseMed');v2('ca-team','85');document.getElementById('ca-investor').value='PE';document.getElementById('ca-roletype').value='hired_cto';v2('ca-years','5');v2('ca-industry','Enterprise Healthcare');document.getElementById('ca-purpose').value='diligence';}
+}
+async function loadCAIPHistory() {
+  try {
+    const res = await getJSON('/caip/assessments');
+    const el = document.getElementById('caip-history');
+    if(!res.assessments?.length){el.innerHTML='';return;}
+    el.innerHTML = res.assessments.map(a => {
+      const c = a.composite.cohort_fit_score>=80?'var(--green)':a.composite.cohort_fit_score>=60?'var(--yellow)':'var(--red)';
+      return `<div class="hist-item" onclick='replayResult(${JSON.stringify(a).replace(/'/g,"&#39;")})'>
+        <span class="hist-dot" style="background:${c}"></span>
+        <span style="font-size:11px;flex:1">${a.cto_name}</span>
+        <span class="badge" style="background:rgba(163,113,247,.12);color:var(--purple)">${a.maturity_state}</span>
+        <span style="font-size:12px;font-weight:700;color:${c}">${a.composite.cohort_fit_score}</span>
+      </div>`;
+    }).join('');
+  } catch{}
+}
+function replayResult(a) { resetCanvas(); NODES.forEach(n=>setNodeState(n.id,'done'));EDGES.forEach(([f,t])=>setEdgeState(f,t,'done')); showScorecard(a); showResultBanner(a); }
+
+// ═══════ OTHER PAGE FUNCTIONS ═══════
+async function doOnboard() {
+  const res = await postJSON('/syntaxis/onboard', { name:v('ob-name'), email:'', walletAddress:v('ob-wallet'), role:v('ob-role'), organization:v('ob-org') });
+  const e=res.executive;
+  document.getElementById('onboard-result').innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">Enrolled: ${e.odentityId}</div>
+    <div class="row"><span class="k">Name</span><span class="v">${e.name}</span></div>
+    <div class="row"><span class="k">PACE ID</span><span class="v hash">${e.paceId}</span></div>
+    <div class="row"><span class="k">Role</span><span class="v">${e.role}</span></div>
+    ${e.councilRoles.map(r=>`<div class="row"><span class="k">${r.module}</span><span class="v">${r.role}</span></div>`).join('')}`;
+  loadExecs();
+}
+async function loadExecs() { try { const r=await getJSON('/syntaxis/executives'); document.getElementById('exec-list').innerHTML=(r.executives||[]).map(e=>`<div class="hist-item"><span class="hist-dot" style="background:var(--green)"></span><span style="font-size:11px;flex:1">${e.name}</span><span class="badge" style="background:rgba(88,166,255,.12);color:var(--accent)">${e.odentityId}</span></div>`).join(''); } catch{} }
+async function doWorkflow() { const btn=document.getElementById('wf-btn');btn.disabled=true;btn.textContent='Running...'; const res=await postJSON('/syntaxis/workflow/execute',{title:v('wf-title'),walletAddress:v('wf-wallet'),decisionClass:v('wf-class'),moduleId:'decision-forum',content:'Governance workflow',blockType:'Proposal',target:'0x1234567890abcdef1234567890abcdef12345678'}); document.getElementById('wf-result').innerHTML=`<div style="font-size:14px;font-weight:700;color:${res.decision?.status==='Approved'?'var(--green)':'var(--yellow)'}; margin-bottom:12px">${res.decision?.status}</div>`+(res.steps||[]).map(s=>`<div class="step-row"><span class="sd ${s.status==='done'?'done':'fail'}"></span><span style="font-size:11px;flex:1">${s.step}</span><span class="badge" style="background:rgba(255,255,255,.05);color:var(--text2)">${s.service||''}</span></div>`).join(''); btn.disabled=false;btn.textContent='Execute Pipeline'; }
+async function loadForum() { try { const r=await getJSON('/syntaxis/situation-room'); document.getElementById('f-pending').textContent=r.ambient?.pending||0;document.getElementById('f-contested').textContent=r.ambient?.contested||0;document.getElementById('f-resolved').textContent=r.ambient?.resolved||0; document.getElementById('triage-queue').innerHTML=(r.triage||[]).map(d=>`<div class="glass" style="margin-bottom:6px;padding:10px"><div style="display:flex;justify-content:space-between"><span style="font-size:11px;font-weight:600">${d.title}</span><span class="badge" style="background:rgba(63,185,80,.12);color:var(--green)">${d.status}</span></div></div>`).join('')||'<div class="empty">No pending</div>'; document.getElementById('forum-timeline').innerHTML=(r.recentTimeline||[]).slice(0,10).map(e=>`<div class="timeline-item"><span class="tl-dot" style="background:var(--purple)"></span><div><b style="font-size:10px">${e.event}</b>${e.actor?' — '+e.actor:''}<div style="font-size:9px;color:var(--text2)">${new Date(e.timestamp).toLocaleString()}</div></div></div>`).join('')||'<div class="empty">No events</div>'; } catch{} }
+async function loadProvenance() { try { const r=await getJSON('/api/receipts'); document.getElementById('prov-list').innerHTML=(r.receipts||[]).map(r=>`<div class="glass" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span class="hash" style="font-weight:600">${r.receiptId}</span><span class="badge" style="background:rgba(57,210,192,.12);color:var(--cyan)">${r.chain}</span></div><div class="row"><span class="k">Hash</span><span class="v hash">${r.payloadHash}</span></div><div class="row"><span class="k">Written</span><span class="v">${new Date(r.writtenAt).toLocaleString()}</span></div></div>`).join('')||'<div class="empty">No receipts</div>'; } catch{} }
+async function loadAudit() { try { const r=await getJSON('/api/log'); document.getElementById('audit-list').innerHTML=(r.entries||[]).map(e=>`<div class="glass" style="margin-bottom:8px"><div class="row"><span class="k">Event</span><span class="v">${e.eventType}</span></div><div class="row"><span class="k">Actor</span><span class="v hash">${e.actor||'-'}</span></div><div class="row"><span class="k">Time</span><span class="v">${new Date(e.recordedAt).toLocaleString()}</span></div></div>`).join('')||'<div class="empty">No entries</div>'; } catch{} }
+async function loadStatus() { try { const r=await getJSON('/api/health'); const names={identity:'0dentity',consent:'LiveSafe',governance:'Governance',decisionForge:'Decision Forge',crosscheck:'CrossChecked',provenance:'ExoChain',audit:'Audit',notification:'Notify',policy:'LegalDyne'}; document.getElementById('svc-health').innerHTML=Object.entries(r.services||{}).map(([k,v])=>`<div class="hist-item"><span class="hist-dot" style="background:${v.ok?'var(--green)':'var(--red)'}"></span><span style="font-size:11px">${names[k]||k}</span><span style="margin-left:auto;font-size:10px;color:var(--text2)">${v.ok?'ONLINE':'DOWN'}</span></div>`).join(''); } catch{} try { const r=await getJSON('/syntaxis/modules'); document.getElementById('module-list').innerHTML=(r.modules||[]).map(m=>`<div class="hist-item"><span style="font-size:16px">${m.icon}</span><span style="font-size:11px;font-weight:600;color:${m.color}">${m.name}</span></div>`).join(''); } catch{} }
+
+// ═══════ NAV + ROUTING ═══════
+const ROUTES={'/cto':'caip','/onboard':'onboard','/workflow':'workflow','/forum':'forum','/provenance':'provenance','/audit':'audit','/status':'status'};
+function nav(page) {
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+page).classList.add('active');
+  event.target.classList.add('active');
+  const path=Object.entries(ROUTES).find(([,v])=>v===page)?.[0]||'/cto';
+  history.pushState(null,'',path);
+  if(page==='caip'){renderCanvas();loadCAIPHistory();}
+  if(page==='forum')loadForum();if(page==='provenance')loadProvenance();if(page==='audit')loadAudit();if(page==='status')loadStatus();
+}
+
+// ═══════ NODE CONFIG MODAL ═══════
+function openNodeConfig(nodeId) {
+  const node = NODES.find(n => n.id === nodeId);
+  const cfg = NODE_CONFIGS[nodeId];
+  if (!node || !cfg) return;
+
+  document.getElementById('modal-icon').textContent = node.icon;
+  document.getElementById('modal-title').textContent = node.name;
+  document.getElementById('modal-sub').textContent = `${cfg.module} — v${cfg.version}`;
+
+  const body = document.getElementById('modal-body');
+  let h = '';
+
+  // Service
+  h += `<div class="cfg-section"><div class="cfg-section-title">Service Endpoint</div>`;
+  h += cfgRow('Service', cfg.service.name);
+  h += cfgRow('Port', cfg.service.port, 'var(--cyan)');
+  h += cfgRow('Protocol', cfg.service.protocol);
+  h += cfgRow('Health', cfg.service.healthEndpoint, 'var(--green)');
+  h += `</div>`;
+
+  // ExoChain binding
+  h += `<div class="cfg-section"><div class="cfg-section-title">ExoChain Binding</div>`;
+  h += cfgRow('Module', cfg.module, 'var(--purple)');
+  h += cfgRow('Gateway Prefix', cfg.gatewayPrefix, 'var(--cyan)');
+  h += `<div class="cfg-row"><span class="cfg-key">Crates</span><div class="cfg-chip-row">${cfg.exochainCrates.map(c => `<span class="cfg-tag" style="background:rgba(57,210,192,.1);color:var(--cyan)">${c}</span>`).join('')}</div></div>`;
+  h += `</div>`;
+
+  // Parameters
+  if (cfg.parameters?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Parameters</div>`;
+    cfg.parameters.forEach(p => {
+      h += `<div class="cfg-row" style="flex-direction:column;align-items:stretch;gap:4px">
+        <div style="display:flex;justify-content:space-between"><span class="cfg-key">${p.key} ${p.required?'<span style="color:var(--red)">*</span>':''}</span><span class="cfg-val" style="color:var(--orange);font-size:10px">${p.type}</span></div>
+        <div style="font-size:9px;color:var(--text2)">${p.description}</div>
+        ${p.values ? `<div class="cfg-chip-row">${p.values.map(v=>`<span class="cfg-tag" style="background:rgba(240,136,62,.1);color:var(--orange)">${v}</span>`).join('')}</div>` : ''}
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  // Outputs
+  if (cfg.outputs?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Outputs</div>`;
+    h += `<div class="cfg-chip-row">${cfg.outputs.map(o => `<span class="cfg-tag" style="background:rgba(63,185,80,.1);color:var(--green)">${o}</span>`).join('')}</div>`;
+    h += `</div>`;
+  }
+
+  // Combinators
+  if (cfg.combinators?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Governance Combinators</div>`;
+    cfg.combinators.forEach(c => {
+      h += `<div class="cfg-row" style="flex-direction:column;align-items:stretch;gap:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="cfg-tag" style="background:rgba(163,113,247,.15);color:var(--purple);font-size:10px">${c.type}</span>
+          <span style="font-size:9px;color:var(--cyan);font-family:'SF Mono',monospace">${c.exochainTerm}</span>
+        </div>
+        <div style="font-size:9px;color:var(--text2)">${c.description}</div>
+        ${c.args ? `<div class="cfg-code">${JSON.stringify(c.args, null, 2)}</div>` : ''}
+      </div>`;
+    });
+    h += `</div>`;
+  }
+
+  // Council Roles
+  if (cfg.councilRoles?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Council Roles</div>`;
+    cfg.councilRoles.forEach(r => {
+      h += cfgRow(r.name, `${r.vetoCapable ? '<span style="color:var(--red)">Veto</span>' : '<span style="color:var(--text2)">No veto</span>'}${r.decisionClasses ? ' — ' + r.decisionClasses.join(', ') : ''}`);
+    });
+    h += `</div>`;
+  }
+
+  // PACE Config
+  if (cfg.paceConfig) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">PACE Configuration</div>`;
+    h += cfgRow('Threshold', cfg.paceConfig.threshold, 'var(--green)');
+    h += cfgRow('Recovery', cfg.paceConfig.recoveryPolicy);
+    h += cfgRow('Shards', cfg.paceConfig.shards);
+    h += `</div>`;
+  }
+
+  // Signals (CrossChecked)
+  if (cfg.signals?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Consensus Signals</div>`;
+    cfg.signals.forEach(s => {
+      h += `<div class="cfg-row"><span class="cfg-key">${s.source}</span><span class="cfg-val" style="font-size:10px;color:var(--text2)">${s.description}</span></div>`;
+    });
+    h += `</div>`;
+    if (cfg.crosscheckModes) {
+      h += `<div class="cfg-chip-row" style="margin-bottom:12px">${cfg.crosscheckModes.map(m => `<span class="cfg-tag" style="background:rgba(63,185,80,.1);color:var(--green)">${m}</span>`).join('')}</div>`;
+    }
+  }
+
+  // Gates
+  if (cfg.gates?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Governance Gates</div>`;
+    h += `<div class="cfg-chip-row">${cfg.gates.map(g => `<span class="cfg-tag" style="background:rgba(163,113,247,.1);color:var(--purple)">${g}</span>`).join('')}</div>`;
+    h += `</div>`;
+  }
+
+  // Decision classes
+  if (cfg.decisionClasses?.length) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Decision Classes</div>`;
+    h += `<div class="cfg-chip-row">${cfg.decisionClasses.map(d => `<span class="cfg-tag" style="background:rgba(88,166,255,.1);color:var(--accent)">${d}</span>`).join('')}</div>`;
+    h += `</div>`;
+  }
+
+  // Scoring specifics
+  if (cfg.weights) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Rater Weights</div>`;
+    Object.entries(cfg.weights).forEach(([k,v]) => { h += cfgRow(k, `${(v*100).toFixed(0)}%`, 'var(--orange)'); });
+    h += `</div>`;
+  }
+  if (cfg.levelMap) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Level Map</div>`;
+    Object.entries(cfg.levelMap).forEach(([k,v]) => { h += cfgRow(`Score ${k}`, v); });
+    h += `</div>`;
+  }
+
+  // Rules / special fields
+  if (cfg.rules) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Classification Rules</div><div class="cfg-code">${cfg.rules}</div></div>`;
+  }
+  if (cfg.hashAlgorithm) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Provenance Config</div>`;
+    h += cfgRow('Hash Algorithm', cfg.hashAlgorithm, 'var(--cyan)');
+    h += cfgRow('Chain', cfg.chain, 'var(--cyan)');
+    h += cfgRow('Immutable', cfg.immutability ? 'Yes' : 'No', 'var(--green)');
+    h += `</div>`;
+  }
+  if (cfg.retentionPolicy) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Retention</div>`;
+    h += cfgRow('Policy', cfg.retentionPolicy, 'var(--green)');
+    if (cfg.queryEndpoints) h += cfgRow('Query', cfg.queryEndpoints.join(', '), 'var(--cyan)');
+    h += `</div>`;
+  }
+  if (cfg.dealBreakerDimensions) {
+    h += `<div class="cfg-section"><div class="cfg-section-title">Deal-Breaker Config</div>`;
+    h += `<div class="cfg-chip-row">${cfg.dealBreakerDimensions.map(d => `<span class="cfg-tag" style="background:rgba(248,81,73,.12);color:var(--red)">${d} Non-Negotiable</span>`).join('')}</div>`;
+    if (cfg.nonNegotiableRule) h += `<div style="font-size:9px;color:var(--text2);margin-top:6px">${cfg.nonNegotiableRule}</div>`;
+    h += `</div>`;
+  }
+
+  body.innerHTML = h;
+  document.getElementById('node-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('node-modal').classList.remove('open');
+}
+
+function cfgRow(key, val, color) {
+  return `<div class="cfg-row"><span class="cfg-key">${key}</span><span class="cfg-val" style="${color?'color:'+color:''}">${val}</span></div>`;
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ═══════ HELPERS ═══════
+function v(id){return document.getElementById(id).value}
+function v2(id,val){document.getElementById(id).value=val}
+async function getJSON(u){const r=await fetch(u);return r.json()}
+async function postJSON(u,d){const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});return r.json()}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+// ═══════ INIT ═══════
+(function(){
+  const page=ROUTES[location.pathname]||'caip';
+  if(page!=='caip'){document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('pg-'+page).classList.add('active');document.querySelector(`.nav-btn[onclick*="'${page}'"]`)?.classList.add('active');}
+  if(page==='caip'){renderCanvas();loadCAIPHistory();}
+  if(page==='forum')loadForum();if(page==='provenance')loadProvenance();if(page==='audit')loadAudit();if(page==='status')loadStatus();
+})();
+</script>
+</body></html>

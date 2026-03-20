@@ -2,3 +2,11 @@ target/
 .vite/
 node_modules/
 .claude/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+.turbo/
+coverage/
+*.tsbuildinfo
