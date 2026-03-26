@@ -1,0 +1,17 @@
+[package]
+name = "exochain-examples"
+description = "Example applications consuming the EXOCHAIN trust fabric"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[[example]]
+name = "exemplar_app"
+path = "exemplar_app.rs"
+
+[dependencies]
+exo-consent = { path = "../exo-consent" }
+exo-gatekeeper = { path = "../exo-gatekeeper" }
+exo-bcts = { path = "../exo-bcts" }
+serde_json = { workspace = true }

@@ -1,0 +1,18 @@
+[package]
+name = "exo-bcts"
+description = "EXOCHAIN BCTS lifecycle — 7-stage pipeline, 14 transaction states, 9 constitutional invariants"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+exo-consent = { path = "../exo-consent" }
+exo-gatekeeper = { path = "../exo-gatekeeper" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+blake3 = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
