@@ -16,6 +16,9 @@ members = [
     "crates/exo-tenant",
     "crates/decision-forum",
     "crates/exochain-wasm",
+    "crates/exo-bcts",
+    "crates/exoclaw-cli",
+    "crates/examples",
 ]
 
 [workspace.package]
@@ -79,6 +82,9 @@ async-stream = "0.3"
 # Time (no std::time — use HLC only)
 chrono = { version = "0.4", default-features = false, features = ["serde", "wasmbind", "clock"] }
 getrandom = { version = "0.2", features = ["js"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
 
 # UUID for correlation IDs
 uuid = { version = "1", features = ["v4", "serde", "js"] }

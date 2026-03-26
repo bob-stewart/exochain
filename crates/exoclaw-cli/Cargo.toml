@@ -1,0 +1,20 @@
+[package]
+name = "exoclaw-cli"
+description = "exoclaw — CLI for EXOCHAIN constitutional trust fabric management"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "exoclaw"
+path = "src/main.rs"
+
+[dependencies]
+exo-consent = { path = "../exo-consent" }
+exo-gatekeeper = { path = "../exo-gatekeeper" }
+exo-bcts = { path = "../exo-bcts" }
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
